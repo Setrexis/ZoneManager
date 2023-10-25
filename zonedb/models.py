@@ -272,7 +272,7 @@ class TrustListCert(Base):
             )
         try:
             b16decode(data)
-        except Exception, e:
+        except Exception as e:
             raise ValueError("'data' field must be base16 encoded")
         return cls(
             usage=usage, selector=selector, matching=matching, data=data
@@ -317,6 +317,6 @@ def rr_from_str(s):
     try:
         return ldns_rr.new_frm_str(s)
     except Exception as e:
-        print("%s: %s" % (e,s))
+        print(("%s: %s" % (e,s)))
         raise e
 

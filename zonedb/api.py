@@ -1,12 +1,14 @@
 import json
 import logging
-from urlparse import urlparse
+from urllib.parse import urlparse
 import falcon
 import gunicorn.app.base
 from sqlalchemy.orm.exc import NoResultFound
 from zonedb.models import AuthToken, SchemeClaim, TrustList, TrustListCert
 from zonedb.master import refresh_zonefile, reload_master
 
+
+# TODO add command injection prevention to all user inputs, they are likely used in commands
 
 def auth_zone(req):
     if not req.auth:
@@ -48,14 +50,14 @@ def decode_certs(cert_list):
         matching = cert.get("matching")
         try:
             data = cert["data"]
-        except KeyError, e:
+        except KeyError as e:
             raise falcon.HTTPBadRequest(
                 "400 Bad Request",
                 "'certificates': missing key '%s'" % e
             )
         try:
             res.append(TrustListCert.create(usage, selector, matching, data))
-        except ValueError, e:
+        except ValueError as e:
             raise falcon.HTTPBadRequest(
                 "400 Bad Request",
                 "%s" % e
@@ -100,7 +102,7 @@ class TrustListResource(object):
         try:
             url = data["url"]
             cert = data["certificate"]
-        except KeyError, e:
+        except KeyError as e:
             raise falcon.HTTPBadRequest(
                 "400 Bad Request",
                 "missing key '%s'" % e
@@ -178,7 +180,7 @@ class SchemeClaimResource(object):
         data = load_json(req)
         try:
             schemes = data["schemes"]
-        except KeyError, e:
+        except KeyError as e:
             raise falcon.HTTPBadRequest(
                 "400 Bad Request",
                 "missing key '%s'" % e
@@ -189,7 +191,7 @@ class SchemeClaimResource(object):
                 "'schemes' must be a list"
             )
         for item in schemes:
-            if not isinstance(item, (str, unicode)):
+            if not isinstance(item, str):
                 raise falcon.HTTPBadRequest(
                     "400 Bad Request",
                     "'schemes' must be a list of strings"

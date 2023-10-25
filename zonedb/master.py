@@ -10,75 +10,63 @@ def refresh_master(session):
     """Recreates all master data for the zone data in the database."""
     for env in session.query(Environment):
         refresh_environment(session, env)
-        reload_master(env)
+        # reload_master(env)
 
-def reload_master(environment):
-    subprocess.call(environment.nsd_reload, shell=True)
+
+# def reload_master(environment):
+#    subprocess.call(environment.nsd_reload, shell=True)
+
+def create_zone(session, name):
+    subprocess.call('gnunet-identity --create="' + name + '"', )
+
 
 def refresh_environment(session, environment):
     """Refreshes the given environment."""
-    conf = ""
     for zone in environment.zones:
-        
-        conf += "zone:\n"
-        conf += "   name: %s\n" % zone.apex
-        conf += "   zonefile: %s\n" % zone.path
-        if zone.pattern:
-            conf += "   include-pattern: %s\n" % zone.pattern
-        conf += "\n"
-
-        refresh_zonefile(session, environment, zone)
-
-    open(environment.nsd_conf, "w").write(conf)
+        create_zone(session, zone.apex)
+        refresh_zone(session, environment, zone)
 
 
-def refresh_zonefile(session, environment, zone):
-    out = ldns.ldns_zone()
-    soa = ldns.ldns_rr.new_frm_str(str(
-        "%s %i IN SOA %s %s %i %i %i %i %i" % (
-            zone.apex, zone.soa_ttl, zone.mname, zone.rname, time(),
-            zone.refresh, zone.retry, zone.expire, zone.minimum
-        )
-    ))
-    out.set_soa(soa)
-    rrs = []
+def refresh_zone(session, environment, zone):
+    cmd = 'gnunet-namestore'
+
+    record_lines = []
     for record in zone.records:
         try:
             rr = record.rr()
+            record_line = zone.soa_ttl + " " + record.rtype + " P " + rr
         except:
             continue
-        rrs.append(rr)
-        out.push_rr(rr)
+        record_lines.append(record_line)
     for claim in zone.scheme_claims:
         try:
             rr = claim.rr()
+            record_line = zone.soa_ttl + " " + claim.rtype + " P " + rr
         except:
             continue
-        rrs.append(rr)
-        out.push_rr(rr)
+        record_lines.append(record_line)
     for trust_list in zone.trust_lists:
         try:
             rr = trust_list.rr()
+            record_line = zone.soa_ttl + " " + trust_list.rtype + " P " + rr
         except:
             continue
-        rrs.append(rr)
-        out.push_rr(rr)
+        record_lines.append(record_line)
         for cert in trust_list.certs:
             try:
                 rr = cert.rr(trust_list)
+                record_line = zone.soa_ttl + " " + cert.rtype + " P " + rr
             except:
                 continue
-            rrs.append(rr)
-            out.push_rr(rr)
-    (hold, key_list) = load_key_list(session, environment, zone)
-    for key in key_list.keys():
-        rr = key.key_to_rr()
-        key.set_keytag(ldns.ldns_calc_keytag(rr))
-        rrs.append(rr)
-        out.push_rr(rr)
-    signed = out.sign(key_list)
-    signed.print_to_file(open(zone.path, "w"))
-    out.set_soa(None)
+            record_lines.append(record_line)
+
+    args = ['--zone=' + zone.apex, '--add', '-n=' + zone.mname]
+    for line in record_lines:
+        args.append('-R ' + line)
+    try:
+        subprocess.call(cmd + " ".join(args), shell=True)
+    except:
+        return
 
 
 def load_key_list(session, environment, zone):
@@ -101,10 +89,11 @@ def load_key(session, environment, zone, key, ksk):
     res.set_use(True)
     return res
 
+
 def get_ds(session, environment, zone):
     res = ""
     (hold, key_list) = load_key_list(session, environment, zone)
-    for key in key_list.keys():
+    for key in list(key_list.keys()):
         if key.flags() == 257:
             rr = key.key_to_rr()
             ds = ldns.ldns_key_rr2ds(rr, ldns.LDNS_SHA256)
@@ -112,4 +101,3 @@ def get_ds(session, environment, zone):
                 res += '\n'
             res += str(ds)
     return res
-

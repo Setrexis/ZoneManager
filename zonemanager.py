@@ -42,9 +42,9 @@ class Init:
     @classmethod
     def run(cls, config):
         if config.force:
-            print("Dropping existing database tables in '%s'" % config.database)
+            print(("Dropping existing database tables in '%s'" % config.database))
             Base.metadata.drop_all(config.engine)
-        print("Creating database tables in `%s'" % config.database)
+        print(("Creating database tables in `%s'" % config.database))
         Base.metadata.create_all(config.engine)
 
 
@@ -116,12 +116,12 @@ class AddZone:
         if config.pattern:
             zone.pattern = config.pattern
         config.session.add(zone)
-        zone.create_keys(config.session)
+        #zone.create_keys(config.session)
         config.session.commit()
         master.refresh_master(config.session)
         zone = config.session.query(Zone) \
                      .filter_by(environment=env, apex=config.apex).one()
-        print(master.get_ds(config.session, env, zone))
+        print((master.get_ds(config.session, env, zone)))
 
 
 class AddRecord:
@@ -186,7 +186,7 @@ class AddToken:
         token = AuthToken.create(config.name, zone)
         config.session.add(token)
         config.session.commit()
-        print(token.token)
+        print((token.token))
 
 
 class Server:
