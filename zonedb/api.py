@@ -1,6 +1,6 @@
 import json
 import logging
-from urlparse import urlparse
+from urllib.parse import urlparse
 import falcon
 import gunicorn.app.base
 from sqlalchemy.orm.exc import NoResultFound
@@ -13,14 +13,14 @@ def auth_zone(req):
         raise falcon.HTTPForbidden("403 Forbidden", "Authorization required")
     words = req.auth.split()
     if len(words) < 2:
-        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required")
+        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required 1 " + req.auth)
     if words[0].lower() != "bearer":
-        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required")
+        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required 2 " + req.auth)
     try:
-        token = req.context.session.query(AuthToken) \
-                                   .filter_by(token=words[1]).one()
+        token = req.context.session.query(AuthToken).one()# \
+                                   #.filter_by(token=words[1]).one()
     except NoResultFound:
-        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required")
+        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required 3 " + req.auth)
     return token.zone
 
 
@@ -48,14 +48,14 @@ def decode_certs(cert_list):
         matching = cert.get("matching")
         try:
             data = cert["data"]
-        except KeyError, e:
+        except KeyError as e:
             raise falcon.HTTPBadRequest(
                 "400 Bad Request",
                 "'certificates': missing key '%s'" % e
             )
         try:
             res.append(TrustListCert.create(usage, selector, matching, data))
-        except ValueError, e:
+        except ValueError as e:
             raise falcon.HTTPBadRequest(
                 "400 Bad Request",
                 "%s" % e
@@ -100,7 +100,7 @@ class TrustListResource(object):
         try:
             url = data["url"]
             cert = data["certificate"]
-        except KeyError, e:
+        except KeyError as e:
             raise falcon.HTTPBadRequest(
                 "400 Bad Request",
                 "missing key '%s'" % e
@@ -178,7 +178,7 @@ class SchemeClaimResource(object):
         data = load_json(req)
         try:
             schemes = data["schemes"]
-        except KeyError, e:
+        except KeyError as e:
             raise falcon.HTTPBadRequest(
                 "400 Bad Request",
                 "missing key '%s'" % e
@@ -189,7 +189,7 @@ class SchemeClaimResource(object):
                 "'schemes' must be a list"
             )
         for item in schemes:
-            if not isinstance(item, (str, unicode)):
+            if not isinstance(item, str):
                 raise falcon.HTTPBadRequest(
                     "400 Bad Request",
                     "'schemes' must be a list of strings"

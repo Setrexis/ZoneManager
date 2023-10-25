@@ -71,7 +71,7 @@ def refresh_zonefile(session, environment, zone):
             rrs.append(rr)
             out.push_rr(rr)
     (hold, key_list) = load_key_list(session, environment, zone)
-    for key in key_list.keys():
+    for key in list(key_list.keys()):
         rr = key.key_to_rr()
         key.set_keytag(ldns.ldns_calc_keytag(rr))
         rrs.append(rr)
@@ -104,7 +104,7 @@ def load_key(session, environment, zone, key, ksk):
 def get_ds(session, environment, zone):
     res = ""
     (hold, key_list) = load_key_list(session, environment, zone)
-    for key in key_list.keys():
+    for key in list(key_list.keys()):
         if key.flags() == 257:
             rr = key.key_to_rr()
             ds = ldns.ldns_key_rr2ds(rr, ldns.LDNS_SHA256)

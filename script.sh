@@ -32,16 +32,18 @@ $ZMGR add-zone -e default -a lightest.nlnetlabs.nl.
 $ZMGR add-record -e default -a lightest.nlnetlabs.nl. \
 	lightest.nlnetlabs.nl. A 127.0.0.1 127.0.0.2
 TOKEN=`$ZMGR create-token -e default default lightest.nlnetlabs.nl.`
+
+echo $TOKEN
 coproc $ZMGR server -e default
 sleep 1
 api GET /status
-api_put /names/scheme..lightest.nlnetlabs.nl./trust-list \
-	'{"url":"http://lightest.nletlabs.nl/","certificate":[{"data":"1234567890123456789012345678901234567890123456789012345678901234"}]}'
-while true ; do
 api_put /names/scheme.lightest.nlnetlabs.nl./trust-list \
 	'{"url":"http://lightest.nletlabs.nl/","certificate":[{"data":"1234567890123456789012345678901234567890123456789012345678901234"}]}'
-done
-echo PUT /names/scheme.lightest.nlnetlabs.nl./trust-list broken
+#while true ; do
+api_put /names/scheme.lightest.nlnetlabs.nl./trust-list \
+	'{"url":"http://lightest.nletlabs.nl/","certificate":[{"data":"1234567890123456789012345678901234567890123456789012345678901234"}]}'
+#done
+#echo PUT /names/scheme.lightest.nlnetlabs.nl./trust-list broken
 api_put /names/scheme.lightest.nlnetlabs.nl./trust-list \
 	'{"url":"http://lightest.nletlabs.nl/","certificate":[{"data":""}]}'
 echo GET /names/scheme.lightest.nlnetlabs.nl./trust-list

@@ -103,7 +103,7 @@ class Zone(Base):
         This creates a new KSK and a new ZSK with default parameters. For
         now, these are hard-coded.
         """
-        ldns_init_random(None, 512) # XXX Check if this is right.
+        ldns_init_random(open("/dev/random","rb"), 512) # XXX Check if this is right.
         private_ksk = ldns_key.new_frm_algorithm(
             LDNS_SIGN_ECDSAP256SHA256, 256
         )
@@ -272,7 +272,7 @@ class TrustListCert(Base):
             )
         try:
             b16decode(data)
-        except Exception, e:
+        except Exception as e:
             raise ValueError("'data' field must be base16 encoded")
         return cls(
             usage=usage, selector=selector, matching=matching, data=data
@@ -317,6 +317,6 @@ def rr_from_str(s):
     try:
         return ldns_rr.new_frm_str(s)
     except Exception as e:
-        print("%s: %s" % (e,s))
+        print(("%s: %s" % (e,s)))
         raise e
 
