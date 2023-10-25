@@ -103,7 +103,7 @@ class Zone(Base):
         This creates a new KSK and a new ZSK with default parameters. For
         now, these are hard-coded.
         """
-        ldns_init_random(None, 512) # XXX Check if this is right.
+        ldns_init_random(open("/dev/random","rb"), 512) # XXX Check if this is right.
         private_ksk = ldns_key.new_frm_algorithm(
             LDNS_SIGN_ECDSAP256SHA256, 256
         )

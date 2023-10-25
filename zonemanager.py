@@ -1,4 +1,9 @@
-#! /usr/bin/env python2.7
+#! /usr/bin/python3
+
+def warn(*args, **kwargs):
+    pass
+import warnings
+warnings.warn = warn
 
 import argparse
 from os import path
@@ -8,6 +13,8 @@ from sqlalchemy.orm import sessionmaker
 from zonedb.api import ApiApplication
 from zonedb.models import AuthToken, Base, Environment, Record, Zone
 from zonedb import master
+
+
 
 def get_config():
     """Produces the configuration."""
@@ -186,7 +193,7 @@ class AddToken:
         token = AuthToken.create(config.name, zone)
         config.session.add(token)
         config.session.commit()
-        print((token.token))
+        print(token.token.decode())
 
 
 class Server:
@@ -217,4 +224,3 @@ if __name__ == "__main__":
     Session = sessionmaker(bind=config.engine)
     config.session = Session()
     config.func(config)
-

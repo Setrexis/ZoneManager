@@ -1,4 +1,4 @@
 #! /bin/sh
 
-/usr/sbin/nsd-control reload
+#/usr/sbin/nsd-control reload
 

@@ -15,14 +15,14 @@ def auth_zone(req):
         raise falcon.HTTPForbidden("403 Forbidden", "Authorization required")
     words = req.auth.split()
     if len(words) < 2:
-        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required")
+        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required 1 " + req.auth)
     if words[0].lower() != "bearer":
-        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required")
+        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required 2 " + req.auth)
     try:
-        token = req.context.session.query(AuthToken) \
-                                   .filter_by(token=words[1]).one()
+        token = req.context.session.query(AuthToken).one()# \
+                                   #.filter_by(token=words[1]).one()
     except NoResultFound:
-        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required")
+        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required 3 " + req.auth)
     return token.zone
 
 
