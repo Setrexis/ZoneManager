@@ -2,7 +2,10 @@
 
 def warn(*args, **kwargs):
     pass
+
+
 import warnings
+
 warnings.warn = warn
 
 import argparse
@@ -15,11 +18,10 @@ from zonedb.models import AuthToken, Base, Environment, Record, Zone
 from zonedb import master
 
 
-
 def get_config():
     """Produces the configuration."""
     parser = argparse.ArgumentParser(description='The LIGHTest zone manager.')
-    
+
     # Global options.
     parser.add_argument("--database", "-d", action="store",
                         help="URL for then zones database",
@@ -39,6 +41,7 @@ def get_config():
 
 class Init:
     """Initializes the database."""
+
     @classmethod
     def args(cls, subparsers):
         sub = subparsers.add_parser("init", help=Init.__doc__)
@@ -71,7 +74,7 @@ class AddEnvironment:
         sub.add_argument("--nsd-reload", "-r", action="store", required=True,
                          help="command to reload NSD")
         sub.add_argument("--key-file", "-k", action="store", required=True,
-                         help="path to a file for temporary key storage.") 
+                         help="path to a file for temporary key storage.")
 
         sub.set_defaults(func=cls.run)
 
@@ -84,6 +87,7 @@ class AddEnvironment:
         config.session.add(env)
         config.session.commit()
         master.refresh_master(config.session)
+
 
 class Resign:
     """Resigns all zones in all environments."""
@@ -105,7 +109,7 @@ class AddZone:
     @classmethod
     def args(cls, subparsers):
         sub = subparsers.add_parser("add-zone", help=cls.__doc__)
-        
+
         sub.add_argument("--environment", "-e", action="store", required=True,
                          help="name of the environment to use")
         sub.add_argument("--apex", "-a", action="store", required=True,
@@ -118,7 +122,7 @@ class AddZone:
     @classmethod
     def run(cls, config):
         env = config.session.query(Environment) \
-                    .filter_by(name=config.environment).one()
+            .filter_by(name=config.environment).one()
         zone = Zone.defaults(config.apex, env)
         if config.pattern:
             zone.pattern = config.pattern
@@ -127,7 +131,7 @@ class AddZone:
         config.session.commit()
         master.refresh_master(config.session)
         zone = config.session.query(Zone) \
-                     .filter_by(environment=env, apex=config.apex).one()
+            .filter_by(environment=env, apex=config.apex).one()
         print((master.get_ds(config.session, env, zone)))
 
 
@@ -156,9 +160,9 @@ class AddRecord:
     @classmethod
     def run(cls, config):
         env = config.session.query(Environment) \
-                    .filter_by(name=config.environment).one()
+            .filter_by(name=config.environment).one()
         zone = config.session.query(Zone) \
-                    .filter_by(environment=env, apex=config.apex).one()
+            .filter_by(environment=env, apex=config.apex).one()
         for data in config.data:
             config.session.add(
                 Record(zone=zone, name=config.name, rtype=config.rtype,
@@ -187,9 +191,9 @@ class AddToken:
     @classmethod
     def run(cls, config):
         env = config.session.query(Environment) \
-                    .filter_by(name=config.environment).one()
+            .filter_by(name=config.environment).one()
         zone = config.session.query(Zone) \
-                    .filter_by(environment=env, apex=config.zone).one()
+            .filter_by(environment=env, apex=config.zone).one()
         token = AuthToken.create(config.name, zone)
         config.session.add(token)
         config.session.commit()
@@ -214,7 +218,7 @@ class Server:
     @classmethod
     def run(cls, config):
         config.environment = config.session.query(Environment) \
-                                   .filter_by(name=config.environment).one()
+            .filter_by(name=config.environment).one()
         ApiApplication(config).run()
 
 

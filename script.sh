@@ -44,8 +44,8 @@ api_put /names/scheme.lightest.nlnetlabs.nl./trust-list \
 	'{"url":"http://lightest.nletlabs.nl/","certificate":[{"data":"1234567890123456789012345678901234567890123456789012345678901234"}]}'
 #done
 #echo PUT /names/scheme.lightest.nlnetlabs.nl./trust-list broken
-api_put /names/scheme.lightest.nlnetlabs.nl./trust-list \
-	'{"url":"http://lightest.nletlabs.nl/","certificate":[{"data":""}]}'
+#api_put /names/scheme.lightest.nlnetlabs.nl./trust-list \
+#	'{"url":"http://lightest.nletlabs.nl/","certificate":[{"data":""}]}'
 echo GET /names/scheme.lightest.nlnetlabs.nl./trust-list
 api GET /names/scheme.lightest.nlnetlabs.nl./trust-list
 echo
@@ -53,8 +53,8 @@ api DELETE /names/scheme.lightest.nlnetlabs.nl./trust-list
 api_put /names/scheme.lightest.nlnetlabs.nl./trust-list \
 	'{"url":"http://lightest.nletlabs.nl/","certificate":[{"data":"1234567890123456789012345678901234567890123456789012345678901234"}]}'
 $ZMGR resign
-api_put /names/trustservice.lightest.nlnetlabs.nl./schemes \
-	'{"schemes": [ "some.scheme.com", "sööome.other.scheme.com" ] }'
+#api_put /names/trustservice.lightest.nlnetlabs.nl./schemes \
+#	'{"schemes": [ "some.scheme.com", "sööome.other.scheme.com" ] }'
 api_put /names/trustservice.lightest.nlnetlabs.nl./schemes \
 	'{"schemes": [ "some.scheme.com", "some.other.scheme.com" ] }'
 api GET /names/trustservice.lightest.nlnetlabs.nl./schemes
@@ -63,6 +63,9 @@ api DELETE /names/trustservice.lightest.nlnetlabs.nl./schemes
 api GET /names/trustservice.lightest.nlnetlabs.nl./schemes
 api_put /names/trustservice.lightest.nlnetlabs.nl./schemes \
 	'{"schemes": [ "some.scheme.com", "some.other.scheme.com" ] }'
+
+api_put /names/scheme.lightest.nlnetlabs.nl./translation \
+	'{"url":"http://lightest.nletlabs.nl/","certificate":[{"data":"1234567890123456789012345678901234567890123456789012345678901234"}]}'
 
 kill $COPROC_PID
 sleep 1
