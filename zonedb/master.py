@@ -1,103 +1,93 @@
 """Produces the zone master data."""
-
+import logging
 from time import time
 import subprocess
 import ldns
 from zonedb.models import Environment
+
+proto_to_num = {"translation": 1003, "scheme": 1002}
+service_to_num = {"trust": 242}
+
+records = {}
 
 
 def refresh_master(session):
     """Recreates all master data for the zone data in the database."""
     for env in session.query(Environment):
         refresh_environment(session, env)
-        # reload_master(env)
+        reload_master(env)
 
 
-# def reload_master(environment):
-#    subprocess.call(environment.nsd_reload, shell=True)
+def reload_master(environment):
+    for name, record_lines in records.items():
+        subprocess.call('gnunet-identity --create="' + name + '"', shell=True)
+        subprocess.call('gnunet-namestore -X -z' + name + ' -t ANY', shell=True)
 
-def create_zone(session, name):
-    subprocess.call('gnunet-identity --create="' + name + '"', )
+        cmd = 'gnunet-namestore --zone=' + name + ' --add -p -e never'  # TODO change never
+
+        for line in record_lines:
+            try:
+                subprocess.call(cmd + ' ' + line, shell=True)
+                print(line)
+            except Exception as e:
+                print(e)
+                continue
 
 
 def refresh_environment(session, environment):
     """Refreshes the given environment."""
     for zone in environment.zones:
-        create_zone(session, zone.apex)
-        refresh_zone(session, environment, zone)
+        refresh_zonefile(session, environment, zone)
 
 
-def refresh_zone(session, environment, zone):
-    cmd = 'gnunet-namestore'
-
+def refresh_zonefile(session, environment, zone):
     record_lines = []
     for record in zone.records:
         try:
-            rr = record.rr()
-            record_line = zone.soa_ttl + " " + record.rtype + " P " + rr
-        except:
+            record_line = "-V '%s' -t %s -n %s" % (
+                record.rdata, record.rtype, "'@'"
+            )
+        except Exception as e:
+            print(e)
             continue
         record_lines.append(record_line)
     for claim in zone.scheme_claims:
         try:
-            rr = claim.rr()
-            record_line = zone.soa_ttl + " " + claim.rtype + " P " + rr
-        except:
+            record_line = "-V '%i %i %s _scheme._trust.%s' -t BOX -n %s" % (
+                service_to_num["trust"], proto_to_num["scheme"],
+                "12", claim.scheme,
+                claim.name.split(".")[0]
+            )
+        except Exception as e:
+            print(e)
             continue
         record_lines.append(record_line)
     for trust_list in zone.trust_lists:
         try:
-            rr = trust_list.rr()
-            record_line = zone.soa_ttl + " " + trust_list.rtype + " P " + rr
-        except:
+            record_line = "-V '%i %i %s %i %i \"%s\"' -t BOX -n %s" % (
+                service_to_num["trust"], proto_to_num[trust_list.list_type],
+                "256", 10, 1, trust_list.url,
+                trust_list.name.split(".")[0]
+            )
+        except Exception as e:
+            print(e)
             continue
         record_lines.append(record_line)
         for cert in trust_list.certs:
             try:
-                rr = cert.rr(trust_list)
-                record_line = zone.soa_ttl + " " + cert.rtype + " P " + rr
-            except:
+                record_line = "-V '%i %i %s %i %i %i %s' -t BOX -n %s" % (
+                    service_to_num["trust"], proto_to_num[trust_list.list_type],
+                    "53", cert.usage, cert.selector, cert.matching,
+                    cert.data, trust_list.name.split(".")[0]
+                )
+            except Exception as e:
+                print(e)
                 continue
             record_lines.append(record_line)
 
-    args = ['--zone=' + zone.apex, '--add', '-n=' + zone.mname]
-    for line in record_lines:
-        args.append('-R ' + line)
-    try:
-        subprocess.call(cmd + " ".join(args), shell=True)
-    except:
-        return
-
-
-def load_key_list(session, environment, zone):
-    """Loads the keys for a zone and returns an ldns_key_list."""
-    res = ldns.ldns_key_list()
-    hold = []
-    for key in zone.keys:
-        key = load_key(session, environment, zone, key.key, key.ksk)
-        hold.append(key)
-        res.push_key(key)
-    return (hold, res)
-
-
-def load_key(session, environment, zone, key, ksk):
-    open(environment.key_file, "w").write(key.private_key)
-    res = ldns.ldns_key.new_frm_fp(open(environment.key_file, "r"))
-    res.set_flags(257 if ksk else 256)
-    res.set_origttl(zone.dnskey_ttl)
-    res.set_pubkey_owner(ldns.ldns_dname(str(zone.apex)))
-    res.set_use(True)
-    return res
+    records[zone.apex.split(".")[0]] = record_lines
 
 
 def get_ds(session, environment, zone):
     res = ""
-    (hold, key_list) = load_key_list(session, environment, zone)
-    for key in list(key_list.keys()):
-        if key.flags() == 257:
-            rr = key.key_to_rr()
-            ds = ldns.ldns_key_rr2ds(rr, ldns.LDNS_SHA256)
-            if res:
-                res += '\n'
-            res += str(ds)
     return res
