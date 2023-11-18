@@ -1,93 +1,126 @@
 """Produces the zone master data."""
-import logging
+
 from time import time
 import subprocess
 import ldns
+
+from zonedb.gns import refresh_environment_gns, reload_gns
 from zonedb.models import Environment
 
-proto_to_num = {"translation": 1003, "scheme": 1002}
-service_to_num = {"trust": 242}
-
-records = {}
+gns = True
+dns = False
 
 
 def refresh_master(session):
     """Recreates all master data for the zone data in the database."""
     for env in session.query(Environment):
-        refresh_environment(session, env)
-        reload_master(env)
+        if gns is True:
+            record_list = refresh_environment_gns(env)
+            reload_gns(record_list)
+        if dns is True:
+            refresh_environment(session, env)
+            reload_master(env)
 
 
 def reload_master(environment):
-    for name, record_lines in records.items():
-        subprocess.call('gnunet-identity --create="' + name + '"', shell=True)
-        subprocess.call('gnunet-namestore -X -z' + name + ' -t ANY', shell=True)
-
-        cmd = 'gnunet-namestore --zone=' + name + ' --add -p -e never'  # TODO change never
-
-        for line in record_lines:
-            try:
-                subprocess.call(cmd + ' ' + line, shell=True)
-                print(line)
-            except Exception as e:
-                print(e)
-                continue
+    subprocess.call(environment.nsd_reload, shell=True)
 
 
 def refresh_environment(session, environment):
     """Refreshes the given environment."""
+    conf = ""
     for zone in environment.zones:
+
+        conf += "zone:\n"
+        conf += "   name: %s\n" % zone.apex
+        conf += "   zonefile: %s\n" % zone.path
+        if zone.pattern:
+            conf += "   include-pattern: %s\n" % zone.pattern
+        conf += "\n"
+
         refresh_zonefile(session, environment, zone)
+
+    open(environment.nsd_conf, "w").write(conf)
 
 
 def refresh_zonefile(session, environment, zone):
-    record_lines = []
+    out = ldns.ldns_zone()
+    soa = ldns.ldns_rr.new_frm_str(str(
+        "%s %i IN SOA %s %s %i %i %i %i %i" % (
+            zone.apex, zone.soa_ttl, zone.mname, zone.rname, time(),
+            zone.refresh, zone.retry, zone.expire, zone.minimum
+        )
+    ))
+    out.set_soa(soa)
+    rrs = []
     for record in zone.records:
         try:
-            record_line = "-V '%s' -t %s -n %s" % (
-                record.rdata, record.rtype, "'@'"
-            )
-        except Exception as e:
-            print(e)
+            rr = record.rr()
+        except:
             continue
-        record_lines.append(record_line)
+        rrs.append(rr)
+        out.push_rr(rr)
     for claim in zone.scheme_claims:
         try:
-            record_line = "-V '%i %i %s _scheme._trust.%s' -t BOX -n %s" % (
-                service_to_num["trust"], proto_to_num["scheme"],
-                "12", claim.scheme,
-                claim.name.split(".")[0]
-            )
-        except Exception as e:
-            print(e)
+            rr = claim.rr()
+        except:
             continue
-        record_lines.append(record_line)
+        rrs.append(rr)
+        out.push_rr(rr)
     for trust_list in zone.trust_lists:
         try:
-            record_line = "-V '%i %i %s %i %i \"%s\"' -t BOX -n %s" % (
-                service_to_num["trust"], proto_to_num[trust_list.list_type],
-                "256", 10, 1, trust_list.url,
-                trust_list.name.split(".")[0]
-            )
-        except Exception as e:
-            print(e)
+            rr = trust_list.rr()
+        except:
             continue
-        record_lines.append(record_line)
+        rrs.append(rr)
+        out.push_rr(rr)
         for cert in trust_list.certs:
             try:
-                record_line = "-V '%i %i %s %i %i %i %s' -t BOX -n %s" % (
-                    service_to_num["trust"], proto_to_num[trust_list.list_type],
-                    "53", cert.usage, cert.selector, cert.matching,
-                    cert.data, trust_list.name.split(".")[0]
-                )
-            except Exception as e:
-                print(e)
+                rr = cert.rr(trust_list)
+            except:
                 continue
-            record_lines.append(record_line)
+            rrs.append(rr)
+            out.push_rr(rr)
+    (hold, key_list) = load_key_list(session, environment, zone)
+    for key in key_list.keys():
+        rr = key.key_to_rr()
+        key.set_keytag(ldns.ldns_calc_keytag(rr))
+        rrs.append(rr)
+        out.push_rr(rr)
+    signed = out.sign(key_list)
+    signed.print_to_file(open(zone.path, "w"))
+    out.set_soa(None)
 
-    records[zone.apex.split(".")[0]] = record_lines
+
+def load_key_list(session, environment, zone):
+    """Loads the keys for a zone and returns an ldns_key_list."""
+    res = ldns.ldns_key_list()
+    hold = []
+    for key in zone.keys:
+        key = load_key(session, environment, zone, key.key, key.ksk)
+        hold.append(key)
+        res.push_key(key)
+    return (hold, res)
+
+
+def load_key(session, environment, zone, key, ksk):
+    open(environment.key_file, "w").write(key.private_key)
+    res = ldns.ldns_key.new_frm_fp(open(environment.key_file, "r"))
+    res.set_flags(257 if ksk else 256)
+    res.set_origttl(zone.dnskey_ttl)
+    res.set_pubkey_owner(ldns.ldns_dname(str(zone.apex)))
+    res.set_use(True)
+    return res
 
 
 def get_ds(session, environment, zone):
     res = ""
+    (hold, key_list) = load_key_list(session, environment, zone)
+    for key in key_list.keys():
+        if key.flags() == 257:
+            rr = key.key_to_rr()
+            ds = ldns.ldns_key_rr2ds(rr, ldns.LDNS_SHA256)
+            if res:
+                res += '\n'
+            res += str(ds)
     return res
