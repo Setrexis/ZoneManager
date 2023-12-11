@@ -7,17 +7,27 @@ import ldns
 from zonedb.gns import refresh_environment_gns, reload_gns
 from zonedb.models import Environment
 
+# TODO: Make this configurable
 gns = True
 dns = False
+
+
+def refresh(session, env, zone):
+    if gns:
+        record_list = refresh_environment_gns(env)
+        reload_gns(record_list)
+    if dns:
+        refresh_zonefile(session, env, zone)
+        reload_master(env)
 
 
 def refresh_master(session):
     """Recreates all master data for the zone data in the database."""
     for env in session.query(Environment):
-        if gns is True:
+        if gns:
             record_list = refresh_environment_gns(env)
             reload_gns(record_list)
-        if dns is True:
+        if dns:
             refresh_environment(session, env)
             reload_master(env)
 

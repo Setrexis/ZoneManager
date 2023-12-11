@@ -209,7 +209,7 @@ class Server:
 
         sub.add_argument("--environment", "-e", action="store", required=True,
                          help="name of the environment to use")
-        sub.add_argument("bind", action="store", default="127.0.0.1:8088",
+        sub.add_argument("bind", action="store", default="127.0.0.1:7225",
                          nargs="?",
                          help="address:port to bind to")
 

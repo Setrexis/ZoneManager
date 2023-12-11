@@ -5,7 +5,7 @@ import falcon
 import gunicorn.app.base
 from sqlalchemy.orm.exc import NoResultFound
 from zonedb.models import AuthToken, SchemeClaim, TrustList, TrustListCert
-from zonedb.master import refresh_zonefile, reload_master
+from zonedb.master import refresh
 
 
 # TODO add command injection prevention to all user inputs, they are likely used in commands
@@ -130,8 +130,7 @@ class TrustListResource(object):
             )
         req.context.session.add(trust_list)
         req.context.session.commit()
-        refresh_zonefile(req.context.session, req.context.environment, zone)
-        reload_master(req.context.environment)
+        refresh(req.context.session, req.context.environment, zone)
         self.on_get(req, resp, scheme_name)
 
     def on_delete(self, req, resp, scheme_name):
@@ -156,8 +155,7 @@ class TrustListResource(object):
                 req.context.session.delete(cert)
             req.context.session.delete(tl)
             req.context.session.commit()
-            refresh_zonefile(req.context.session, req.context.environment, zone)
-            reload_master(req.context.environment)
+            refresh(req.context.session, req.context.environment, zone)
             return True
 
 
@@ -223,8 +221,7 @@ class SchemeClaimResource(object):
                 )
             req.context.session.add(claim)
         req.context.session.commit()
-        refresh_zonefile(req.context.session, req.context.environment, zone)
-        reload_master(req.context.environment)
+        refresh(req.context.session, req.context.environment, zone)
         self.on_get(req, resp, scheme_name)
 
     def on_delete(self, req, resp, scheme_name):
@@ -233,8 +230,7 @@ class SchemeClaimResource(object):
                                  .filter_by(zone=zone, name=scheme_name) \
                                  .delete()
         req.context.session.commit()
-        refresh_zonefile(req.context.session, req.context.environment, zone)
-        reload_master(req.context.environment)
+        refresh(req.context.session, req.context.environment, zone)
         if res == 0:
             resp.status = falcon.HTTP_404
         else:

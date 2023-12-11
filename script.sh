@@ -4,7 +4,7 @@
 
 ZMGR=./zonemanager.py
 WORKDIR=test
-ADDR=127.0.0.1:8088
+ADDR=127.0.0.1:7225
 BASE=http://$ADDR
 
 api() {
@@ -66,6 +66,9 @@ api_put /names/trustservice.lightest.nlnetlabs.nl./schemes \
 
 api_put /names/scheme.lightest.nlnetlabs.nl./translation \
 	'{"url":"http://lightest.nletlabs.nl/","certificate":[{"data":"1234567890123456789012345678901234567890123456789012345678901234"}]}'
+
+api_put /names/company-ca.pof-demo.lightest.nlnetlabs.nl/schemes \
+	'{"schemes": [ "federation.pof-demo.lightest.nlnetlabs.nl" ] }'
 
 kill $COPROC_PID
 sleep 1

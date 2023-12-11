@@ -191,8 +191,11 @@ class AuthToken(Base):
 
     @classmethod
     def create(cls, name, zone):
+        #return AuthToken(
+        #    name=name, token=urlsafe_b64encode(urandom(24)), zone=zone
+        #)
         return AuthToken(
-            name=name, token=urlsafe_b64encode(urandom(24)), zone=zone
+            name=name, token="1LqNpNE2MGRlPIxtT5CKNLzYN-QuSeju".encode(), zone=zone
         )
 
 

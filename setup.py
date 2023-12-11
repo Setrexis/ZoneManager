@@ -1,5 +1,5 @@
 #! /usr/bin/env python2.7
-
+# This file is deprecated
 from distutils.core import setup
 
 setup(
