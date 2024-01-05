@@ -101,7 +101,7 @@ def reload_gns_zone(records, apex):
                 zone_keys[zone] = subprocess.check_output(['gnunet-identity', '--display', '-e', zone, '-q'])
                 if zone_keys[zone] is None or len(zone_keys[zone]) < 5:
                     raise Exception("No key")
-                subprocess.call('gnunet-namestore -X -z ' + zone, shell=True)
+                # subprocess.call('gnunet-namestore -X -z ' + zone, shell=True) # TODO fix duplicate entries
             except:
                 subprocess.call('gnunet-identity --create="' + zone + '"', shell=True)
                 zone_keys[zone] = subprocess.check_output(['gnunet-identity', '--display', '-e', zone, '-q'])

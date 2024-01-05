@@ -1,4 +1,3 @@
-
 from base64 import urlsafe_b64encode, b16encode, b16decode
 from os import path, urandom
 from ldns import ldns_init_random, ldns_key, ldns_rr, LDNS_SIGN_ECDSAP256SHA256
@@ -6,7 +5,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Table
 from sqlalchemy import Boolean, ForeignKey, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import relationship
-
 
 Base = declarative_base()
 
@@ -24,7 +22,7 @@ class Environment(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, unique=True)
     key_file = Column(String,
-        doc="""Path to a file that temporarily holds the private key.
+                      doc="""Path to a file that temporarily holds the private key.
         
         This is necessary due to some peculiarities with the library used.
         Basically, before using any private key, we have to write it to that
@@ -34,16 +32,16 @@ class Environment(Base):
     # NSD configuration    
     #
     nsd_name = Column(String,
-        doc="""Hostname of the name server.""")
+                      doc="""Hostname of the name server.""")
     nsd_conf = Column(String,
-        doc="""Path to the NSD configuration to be created.
+                      doc="""Path to the NSD configuration to be created.
         
         Zonemanager produces a single NSD config file with all its
         information that must be included from NSD's actual config
         file via the "include: " directive.
         """)
     nsd_reload = Column(String,
-        doc="""Command to run to reload NSD.""")
+                        doc="""Command to run to reload NSD.""")
 
 
 class Zone(Base):
@@ -83,18 +81,18 @@ class Zone(Base):
         """Creates a new zone value with almost everything set to defaults."""
         return cls(
             apex=apex, environment_id=environment.id,
-            
+
             path=path.join(path.dirname(environment.nsd_conf), apex),
             pattern=None,
 
-            soa_ttl = 3600,
-            mname = environment.nsd_name,
-            rname = "%s.%s" % ("hostmaster", apex),
-            refresh = 28800,
-            retry = 7200,
-            expire = 604800,
-            minimum = 3600,
-            dnskey_ttl = 3600,
+            soa_ttl=3600,
+            mname=environment.nsd_name,
+            rname="%s.%s" % ("hostmaster", apex),
+            refresh=28800,
+            retry=7200,
+            expire=604800,
+            minimum=3600,
+            dnskey_ttl=3600,
         )
 
     def create_keys(self, session):
@@ -103,7 +101,7 @@ class Zone(Base):
         This creates a new KSK and a new ZSK with default parameters. For
         now, these are hard-coded.
         """
-        ldns_init_random(open("/dev/random","rb"), 512) # XXX Check if this is right.
+        ldns_init_random(open("/dev/random", "rb"), 512)  # XXX Check if this is right.
         private_ksk = ldns_key.new_frm_algorithm(
             LDNS_SIGN_ECDSAP256SHA256, 256
         )
@@ -126,8 +124,10 @@ class Zone(Base):
         """
         return name.endswith(self.apex)
 
+
 Environment.zones = relationship("Zone", order_by=Zone.id,
                                  back_populates="environment")
+
 
 class Key(Base):
     """A key for zone signing."""
@@ -135,7 +135,7 @@ class Key(Base):
 
     id = Column(Integer, primary_key=True)
     private_key = Column(String,
-        doc="""The content of the private key file.""")
+                         doc="""The content of the private key file.""")
 
     zones = relationship("ZoneKey", back_populates="key")
 
@@ -171,7 +171,7 @@ class Record(Base):
                 self.name, self.ttl, self.rtype, self.rdata
             )
         ))
-        
+
 
 Zone.records = relationship("Record",
                             order_by=(Record.name, Record.rtype, Record.rdata),
@@ -191,9 +191,9 @@ class AuthToken(Base):
 
     @classmethod
     def create(cls, name, zone):
-        #return AuthToken(
+        # return AuthToken(
         #    name=name, token=urlsafe_b64encode(urandom(24)), zone=zone
-        #)
+        # )
         return AuthToken(
             name=name, token="1LqNpNE2MGRlPIxtT5CKNLzYN-QuSeju".encode(), zone=zone
         )
@@ -211,9 +211,9 @@ class TrustList(Base):
 
     zone = relationship(Zone, back_populates="trust_lists")
     certs = relationship("TrustListCert",
-        back_populates="trust_list",
-        cascade="all, delete, delete-orphan"
-    )
+                         back_populates="trust_list",
+                         cascade="all, delete, delete-orphan"
+                         )
 
     def rr(self):
         return rr_from_str(str(
@@ -320,6 +320,5 @@ def rr_from_str(s):
     try:
         return ldns_rr.new_frm_str(s)
     except Exception as e:
-        print(("%s: %s" % (e,s)))
+        print(("%s: %s" % (e, s)))
         raise e
-

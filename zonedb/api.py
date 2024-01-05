@@ -8,21 +8,21 @@ from zonedb.models import AuthToken, SchemeClaim, TrustList, TrustListCert
 from zonedb.master import refresh
 
 
-# TODO add command injection prevention to all user inputs, they are likely used in commands
+# TODO add command injection prevention to all user inputs, they are likely used in commands if gns is enabled
 
 def auth_zone(req):
     if not req.auth:
         raise falcon.HTTPForbidden("403 Forbidden", "Authorization required")
     words = req.auth.split()
     if len(words) < 2:
-        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required 1 " + req.auth)
+        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required")
     if words[0].lower() != "bearer":
-        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required 2 " + req.auth)
+        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required")
     try:
         token = req.context.session.query(AuthToken).one()# \
                                    #.filter_by(token=words[1]).one()
     except NoResultFound:
-        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required 3 " + req.auth)
+        raise falcon.HTTPForbidden("403 Forbidden", "Authorization required")
     return token.zone
 
 
