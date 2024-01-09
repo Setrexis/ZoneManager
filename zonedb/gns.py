@@ -128,6 +128,8 @@ def reload_gns_zone(records, apex):
 
     for record in records:
         try:
+            subprocess.call('gnunet-namestore -d -p -n "@" --type ' + record.type + ' -V \'' + record.rdata
+                            + '\' -e never ' + '-z ' + record.nick, shell=True)  # This might break things
             subprocess.call('gnunet-namestore -a -p -n "@" --type ' + record.type + ' -V \'' + record.rdata
                             + '\' -e never ' + '-z ' + record.nick, shell=True)
         except Exception as e:
